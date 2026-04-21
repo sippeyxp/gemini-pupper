@@ -100,6 +100,7 @@ export class GeminiLiveService {
   private videoInterval: number | null = null;
   private volumeInterval: number | null = null;
   private queuedSources = [];
+  private connected = false;
 
   public robotBridge: RobotBridge;
 
@@ -123,7 +124,7 @@ export class GeminiLiveService {
 
   async connect(apiKey: string, config: AppConfig, videoElement: HTMLVideoElement) {
     // this.ai = new GoogleGenAI({ apiKey }); // keep this comment
-    this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    this.ai = new GoogleGenAI({ apiKey: apiKey });
 
     this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     
@@ -192,6 +193,7 @@ export class GeminiLiveService {
       },
       callbacks: {
         onopen: () => {
+          this.connected = true;
           this.log('info', 'Session connected');
           if (this.mediaStream) {
             this.setupAudioInput(inputCtx, this.mediaStream);
@@ -201,10 +203,12 @@ export class GeminiLiveService {
           }
         },
         onmessage: async (msg: LiveServerMessage) => {
+          if (!this.connected) return;
           await this.handleMessage(msg);
         },
         onclose: () => {
           this.log('error', 'Session closed');
+          this.cleanup();
           this.onDisconnect();
         },
         onerror: (err) => {
@@ -242,12 +246,13 @@ export class GeminiLiveService {
     this.inputScriptProcessor = ctx.createScriptProcessor(4096, 1, 1);
     
     this.inputScriptProcessor.onaudioprocess = (e) => {
-      if (!this.sessionPromise) return; // Disconnected
+      if (!this.connected || !this.sessionPromise) return;
 
       const inputData = e.inputBuffer.getChannelData(0);
       const pcmBlob = createPcmBlob(inputData);
       
       this.sessionPromise.then(session => {
+        if (!this.connected) return;
         try {
            session.sendRealtimeInput({ 
              audio: { 
@@ -273,16 +278,17 @@ export class GeminiLiveService {
         const ctx = canvas.getContext('2d');
         
         this.videoInterval = window.setInterval(async () => {
-          if (!this.sessionPromise || !ctx || !videoEl.videoWidth) return;
+          if (!this.connected || !this.sessionPromise || !ctx || !videoEl.videoWidth) return;
           
           canvas.width = videoEl.videoWidth * 0.5;
           canvas.height = videoEl.videoHeight * 0.5;
           ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
           
           canvas.toBlob(async (blob) => {
-            if (!blob) return;
+            if (!blob || !this.connected) return;
             const base64 = await blobToBase64(blob);
             this.sessionPromise?.then(session => {
+                if (!this.connected) return;
                 try {
                     session.sendRealtimeInput({ 
                       video: { 
@@ -297,11 +303,12 @@ export class GeminiLiveService {
     } else {
         // Server source
         this.videoInterval = window.setInterval(async () => {
-             if (!this.sessionPromise) return;
+             if (!this.connected || !this.sessionPromise) return;
              const blob = await this.robotBridge.getCameraImage();
-             if (blob) {
+             if (blob && this.connected) {
                  const base64 = await blobToBase64(blob);
                  this.sessionPromise?.then(session => {
+                    if (!this.connected) return;
                     try {
                         session.sendRealtimeInput({ 
                           video: { 
@@ -381,13 +388,22 @@ export class GeminiLiveService {
           result = { error: e.message };
         }
 
-        this.sessionPromise?.then(session => session.sendToolResponse({
-            functionResponses: {
-                id: fc.id,
-                name: fc.name,
-                response: { result }
+        if (this.connected && this.sessionPromise) {
+          this.sessionPromise.then(session => {
+            if (!this.connected) return;
+            try {
+              session.sendToolResponse({
+                functionResponses: {
+                  id: fc.id,
+                  name: fc.name,
+                  response: { result }
+                }
+              });
+            } catch (err) {
+              // Session may have closed between check and send
             }
-        }));
+          });
+        }
       }
     }
 
@@ -399,7 +415,13 @@ export class GeminiLiveService {
     }
   }
 
-  public async disconnect() {
+  /**
+   * Stop all intervals and null out session/resources.
+   * Called both on explicit disconnect and on server-side onclose.
+   */
+  private cleanup() {
+    this.connected = false;
+
     if (this.inputScriptProcessor) {
       this.inputScriptProcessor.disconnect();
       this.inputScriptProcessor = null;
@@ -409,29 +431,38 @@ export class GeminiLiveService {
       this.videoInterval = null;
     }
     if (this.volumeInterval) {
-        clearInterval(this.volumeInterval);
-        this.volumeInterval = null;
-    }
-    if (this.audioContext) {
-      await this.audioContext.close();
-      this.audioContext = null;
+      clearInterval(this.volumeInterval);
+      this.volumeInterval = null;
     }
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
       this.mediaStream = null;
     }
     this.analyser = null;
+    this.queuedSources = [];
+    this.nextStartTime = 0;
+  }
+
+  public async disconnect() {
+    // Set flag first to stop all in-flight sends immediately
+    this.connected = false;
+    this.cleanup();
+
+    if (this.audioContext) {
+      await this.audioContext.close();
+      this.audioContext = null;
+    }
 
     // Critical: Close the session to allow reconnection
     if (this.sessionPromise) {
-        try {
-            const session = await this.sessionPromise;
-            await session.close();
-        } catch (e) {
-            console.error("Error closing session", e);
-        }
+      try {
+        const session = await this.sessionPromise;
+        await session.close();
+      } catch (e) {
+        console.error("Error closing session", e);
+      }
     }
-    
+
     this.sessionPromise = null;
     this.ai = null;
   }
