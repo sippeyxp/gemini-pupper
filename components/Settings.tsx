@@ -1,0 +1,152 @@
+
+import React from 'react';
+import { AppConfig, EyeTrackingSource, CameraSource } from '../types';
+import { MODEL_OPTIONS, VOICE_OPTIONS } from '../constants';
+
+interface SettingsProps {
+  apiKey: string;
+  setApiKey: (key: string) => void;
+  config: AppConfig;
+  setConfig: React.Dispatch<React.SetStateAction<AppConfig>>;
+  onClose: () => void;
+}
+
+const Settings: React.FC<SettingsProps> = ({ apiKey, setApiKey, config, setConfig, onClose }) => {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+      <div className="bg-gray-800 rounded-lg max-w-md w-full p-6 shadow-2xl border border-gray-700">
+        <h2 className="text-xl font-bold mb-4 text-white">System Configuration</h2>
+        
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">Gemini API Key</label>
+            <input 
+              type="password" 
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your API Key"
+              className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">Model</label>
+            <select 
+              value={config.modelName}
+              onChange={(e) => setConfig({...config, modelName: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"
+            >
+              {MODEL_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">Voice</label>
+            <select 
+              value={config.voiceName}
+              onChange={(e) => setConfig({...config, voiceName: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"
+            >
+              {VOICE_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">System Instruction</label>
+            <textarea 
+              value={config.systemInstruction}
+              onChange={(e) => setConfig({...config, systemInstruction: e.target.value})}
+              placeholder="Enter system instructions for the robot persona..."
+              rows={4}
+              className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white text-xs focus:border-cyan-500 outline-none resize-y"
+            />
+          </div>
+
+          <div className="border-t border-gray-700 pt-3">
+             <label className="block text-sm font-medium text-cyan-400 mb-2">Capabilities</label>
+             
+             <label className="flex items-center space-x-2 mb-2 cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={config.enableAffectiveDialog}
+                  onChange={(e) => setConfig({...config, enableAffectiveDialog: e.target.checked})}
+                  className="w-4 h-4 rounded bg-gray-700 border-gray-600 focus:ring-offset-gray-800 focus:ring-cyan-500"
+                />
+                <span className="text-sm text-gray-300">Enable Affective Dialog</span>
+             </label>
+
+             <label className="flex items-center space-x-2 mb-2 cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={config.enableProactiveAudio}
+                  onChange={(e) => setConfig({...config, enableProactiveAudio: e.target.checked})}
+                  className="w-4 h-4 rounded bg-gray-700 border-gray-600 focus:ring-offset-gray-800 focus:ring-cyan-500"
+                />
+                <span className="text-sm text-gray-300">Enable Proactive Audio</span>
+             </label>
+          </div>
+
+          <div className="border-t border-gray-700 pt-3">
+             <label className="block text-sm font-medium text-cyan-400 mb-2">Vision & Tracking</label>
+             
+             <label className="flex items-center space-x-2 mb-2 cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={config.enableVideo}
+                  onChange={(e) => setConfig({...config, enableVideo: e.target.checked})}
+                  className="w-4 h-4 rounded bg-gray-700 border-gray-600 focus:ring-offset-gray-800 focus:ring-cyan-500"
+                />
+                <span className="text-sm text-gray-300">Enable Vision (Send Video)</span>
+             </label>
+
+             <div className="mb-2">
+               <label className="block text-xs font-medium text-gray-500 mb-1">Camera Source</label>
+               <select 
+                  value={config.cameraSource}
+                  onChange={(e) => setConfig({...config, cameraSource: e.target.value as CameraSource})}
+                  className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-white"
+                >
+                  <option value="browser">Browser Camera (Webcam)</option>
+                  <option value="server">Robot Camera (Local Server)</option>
+                </select>
+             </div>
+
+             <div>
+               <label className="block text-xs font-medium text-gray-500 mb-1">Eye Tracking Source</label>
+               <select 
+                  value={config.eyeTrackingSource}
+                  onChange={(e) => setConfig({...config, eyeTrackingSource: e.target.value as EyeTrackingSource})}
+                  className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-white"
+                >
+                  <option value="server">Robot Detection (Server)</option>
+                  <option value="mediapipe">Browser Detection (MediaPipe)</option>
+                  <option value="mouse">Mouse (Cursor)</option>
+                </select>
+             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-1">Robot API URL</label>
+            <input 
+              type="text" 
+              value={config.robotApiUrl}
+              onChange={(e) => setConfig({...config, robotApiUrl: e.target.value})}
+              className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white text-xs"
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <button 
+            onClick={onClose}
+            className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded font-medium transition-colors"
+          >
+            Save & Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Settings;

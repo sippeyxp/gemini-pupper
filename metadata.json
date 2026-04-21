@@ -1,0 +1,9 @@
+{
+  "name": "Public Copy of Pupster AI",
+  "description": "A robot dog interface powered by Gemini Live API using React and Tailwind.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": []
+}
