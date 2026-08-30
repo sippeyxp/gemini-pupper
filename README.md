@@ -6,6 +6,11 @@
 
 This contains everything you need to run your app locally.
 
+## Documentation
+
+- [Interactive Robot Dog with Gemini Live](docs/interactive-robot-dog.md)
+- [Robot-side local server](robot/local_server.py)
+
 View your app in AI Studio: https://ai.studio/apps/2d53b29b-b56c-410b-856d-149726bc5d3b
 
 ## Run Locally
