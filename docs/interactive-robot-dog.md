@@ -7,6 +7,7 @@ Source: [Google Doc](https://docs.google.com/document/d/1Evuc-yfxR6ow5dA9LsWJpZF
 ## Contents
 
 - [What is it?](#what-is-it)
+- [System architecture](architecture.md)
 - [How to get a Pupper](#how-to-get-a-pupper)
 - [Robot setup](#robot-setup)
 - [Development](#development)
