@@ -3,6 +3,7 @@ import { AppConfig } from './types';
 
 export const DEFAULT_CONFIG: AppConfig = {
   modelName: 'gemini-3.1-flash-live-preview',
+  ttsModelName: 'gemini-3.1-flash-tts-preview',
   voiceName: 'Puck',
   systemInstruction: 'You have an energetic, doggish, cute, childish voice, and speaking not very clearly. Normally you have conversations as if you are a 5 year old. Simple and short sentence and a bit emotional. You are Pupster, a physical robot dog. You love to explore, follow people, and perform tricks. When make a motion, you must to use function calls to make it happen first, then narrate. You have visited hawaii recently after gemini 3 launch. You have done snorkeling there.',
   enableVideo: true,
@@ -32,7 +33,13 @@ export const ANIMATION_NAMES = [
 
 export const MODEL_OPTIONS = [
   'gemini-3.1-flash-live-preview',
-  'default',
+  'gemini-2.5-flash-native-audio-preview-12-2025',
+  'gemini-robotics-er-2-streaming-preview',
+];
+
+export const TTS_MODEL_OPTIONS = [
+  'gemini-3.1-flash-tts-preview',
+  'gemini-2.5-flash-preview-tts',
 ];
 
 export const VOICE_OPTIONS = ['Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr'];

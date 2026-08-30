@@ -25,6 +25,7 @@ export type CameraSource = 'browser' | 'server';
 
 export interface AppConfig {
   modelName: string;
+  ttsModelName?: string;
   voiceName: string;
   systemInstruction: string;
   enableVideo: boolean;

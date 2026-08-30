@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { AppConfig, EyeTrackingSource, CameraSource } from '../types';
-import { MODEL_OPTIONS, VOICE_OPTIONS } from '../constants';
+import { MODEL_OPTIONS, TTS_MODEL_OPTIONS, VOICE_OPTIONS } from '../constants';
+import { isAudioOutputModel } from '../services/geminiLive';
 
 interface SettingsProps {
   apiKey: string;
@@ -12,16 +13,18 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ apiKey, setApiKey, config, setConfig, onClose }) => {
+  const isRoboticsER = !isAudioOutputModel(config.modelName);
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-lg max-w-md w-full p-6 shadow-2xl border border-gray-700">
         <h2 className="text-xl font-bold mb-4 text-white">System Configuration</h2>
-        
+
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">Gemini API Key</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="Enter your API Key"
@@ -31,18 +34,38 @@ const Settings: React.FC<SettingsProps> = ({ apiKey, setApiKey, config, setConfi
 
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">Model</label>
-            <select 
+            <select
               value={config.modelName}
               onChange={(e) => setConfig({...config, modelName: e.target.value})}
               className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"
             >
               {MODEL_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
+            {isRoboticsER && (
+              <p className="mt-1 text-[11px] text-cyan-400">
+                Robotics ER 2 Streaming uses text modality; audio is synthesized via Flash TTS and the <code className="bg-gray-900 px-1 rounded text-yellow-300">speak</code> tool.
+              </p>
+            )}
           </div>
+
+          {isRoboticsER && (
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">TTS Model (Robotics ER Speech)</label>
+              <select
+                value={config.ttsModelName === "gemini-2.5-flash-preview"
+                  ? "gemini-2.5-flash-preview-tts"
+                  : config.ttsModelName || TTS_MODEL_OPTIONS[0]}
+                onChange={(e) => setConfig({...config, ttsModelName: e.target.value})}
+                className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"
+              >
+                {TTS_MODEL_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">Voice</label>
-            <select 
+            <select
               value={config.voiceName}
               onChange={(e) => setConfig({...config, voiceName: e.target.value})}
               className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"
@@ -53,7 +76,7 @@ const Settings: React.FC<SettingsProps> = ({ apiKey, setApiKey, config, setConfi
 
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">System Instruction</label>
-            <textarea 
+            <textarea
               value={config.systemInstruction}
               onChange={(e) => setConfig({...config, systemInstruction: e.target.value})}
               placeholder="Enter system instructions for the robot persona..."
@@ -62,36 +85,38 @@ const Settings: React.FC<SettingsProps> = ({ apiKey, setApiKey, config, setConfi
             />
           </div>
 
-          <div className="border-t border-gray-700 pt-3">
-             <label className="block text-sm font-medium text-cyan-400 mb-2">Capabilities</label>
-             
-             <label className="flex items-center space-x-2 mb-2 cursor-pointer select-none">
-                <input 
-                  type="checkbox" 
-                  checked={config.enableAffectiveDialog}
-                  onChange={(e) => setConfig({...config, enableAffectiveDialog: e.target.checked})}
-                  className="w-4 h-4 rounded bg-gray-700 border-gray-600 focus:ring-offset-gray-800 focus:ring-cyan-500"
-                />
-                <span className="text-sm text-gray-300">Enable Affective Dialog</span>
-             </label>
+          {!isRoboticsER && (
+            <div className="border-t border-gray-700 pt-3">
+               <label className="block text-sm font-medium text-cyan-400 mb-2">Capabilities</label>
 
-             <label className="flex items-center space-x-2 mb-2 cursor-pointer select-none">
-                <input 
-                  type="checkbox" 
-                  checked={config.enableProactiveAudio}
-                  onChange={(e) => setConfig({...config, enableProactiveAudio: e.target.checked})}
-                  className="w-4 h-4 rounded bg-gray-700 border-gray-600 focus:ring-offset-gray-800 focus:ring-cyan-500"
-                />
-                <span className="text-sm text-gray-300">Enable Proactive Audio</span>
-             </label>
-          </div>
+               <label className="flex items-center space-x-2 mb-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={config.enableAffectiveDialog}
+                    onChange={(e) => setConfig({...config, enableAffectiveDialog: e.target.checked})}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 focus:ring-offset-gray-800 focus:ring-cyan-500"
+                  />
+                  <span className="text-sm text-gray-300">Enable Affective Dialog</span>
+               </label>
+
+               <label className="flex items-center space-x-2 mb-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={config.enableProactiveAudio}
+                    onChange={(e) => setConfig({...config, enableProactiveAudio: e.target.checked})}
+                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 focus:ring-offset-gray-800 focus:ring-cyan-500"
+                  />
+                  <span className="text-sm text-gray-300">Enable Proactive Audio</span>
+               </label>
+            </div>
+          )}
 
           <div className="border-t border-gray-700 pt-3">
              <label className="block text-sm font-medium text-cyan-400 mb-2">Vision & Tracking</label>
-             
+
              <label className="flex items-center space-x-2 mb-2 cursor-pointer select-none">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={config.enableVideo}
                   onChange={(e) => setConfig({...config, enableVideo: e.target.checked})}
                   className="w-4 h-4 rounded bg-gray-700 border-gray-600 focus:ring-offset-gray-800 focus:ring-cyan-500"
@@ -101,7 +126,7 @@ const Settings: React.FC<SettingsProps> = ({ apiKey, setApiKey, config, setConfi
 
              <div className="mb-2">
                <label className="block text-xs font-medium text-gray-500 mb-1">Camera Source</label>
-               <select 
+               <select
                   value={config.cameraSource}
                   onChange={(e) => setConfig({...config, cameraSource: e.target.value as CameraSource})}
                   className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-white"
@@ -113,7 +138,7 @@ const Settings: React.FC<SettingsProps> = ({ apiKey, setApiKey, config, setConfi
 
              <div>
                <label className="block text-xs font-medium text-gray-500 mb-1">Eye Tracking Source</label>
-               <select 
+               <select
                   value={config.eyeTrackingSource}
                   onChange={(e) => setConfig({...config, eyeTrackingSource: e.target.value as EyeTrackingSource})}
                   className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-xs text-white"
@@ -127,8 +152,8 @@ const Settings: React.FC<SettingsProps> = ({ apiKey, setApiKey, config, setConfi
 
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">Robot API URL</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={config.robotApiUrl}
               onChange={(e) => setConfig({...config, robotApiUrl: e.target.value})}
               className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white text-xs"
@@ -137,7 +162,7 @@ const Settings: React.FC<SettingsProps> = ({ apiKey, setApiKey, config, setConfi
         </div>
 
         <div className="mt-6 flex justify-end">
-          <button 
+          <button
             onClick={onClose}
             className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded font-medium transition-colors"
           >

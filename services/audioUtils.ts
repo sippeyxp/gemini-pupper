@@ -36,7 +36,7 @@ function decodeBase64(base64: string) {
   return bytes;
 }
 
-// Decode PCM 16-bit data from API to AudioBuffer
+// Decode PCM 16-bit data or container audio (WAV/MP3) from API to AudioBuffer
 export async function decodeAudioData(
   base64String: string,
   ctx: AudioContext,
@@ -44,7 +44,20 @@ export async function decodeAudioData(
   numChannels: number = 1,
 ): Promise<AudioBuffer> {
   const bytes = decodeBase64(base64String);
-  const dataInt16 = new Int16Array(bytes.buffer);
+
+  // Check if bytes start with RIFF (WAV header) or ID3/audio container
+  const isRiff = bytes.length >= 4 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46;
+  if (isRiff) {
+    try {
+      const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      return await ctx.decodeAudioData(arrayBuffer);
+    } catch (e) {
+      console.warn("WAV container decode failed, falling back to raw PCM", e);
+    }
+  }
+
+  // Fallback to decoding as raw 16-bit PCM
+  const dataInt16 = new Int16Array(bytes.buffer, bytes.byteOffset, Math.floor(bytes.byteLength / 2));
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
 
